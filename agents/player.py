@@ -2,13 +2,16 @@ import os
 import numpy as np
 import time
 import json
+import gym
+import gym_everglades
+import random
 
 
-class random_actions:
+class Player:
     def __init__(self, action_space, player_num, map_name):
         self.action_space = action_space
         self.num_groups = 12
-
+        self.player_num = player_num
         with open('./config/' + map_name) as fid:
             self.map_dat = json.load(fid)
 
@@ -20,6 +23,8 @@ class random_actions:
         self.num_actions = action_space
 
         self.shape = (self.num_actions, 2)
+        self.action_choices = self.get_action_choices(
+            (self.num_groups * len(self.nodes_array), 2))
 
         self.unit_config = {
             0: [('controller', 1), ('striker', 5)],  # 6
@@ -36,18 +41,22 @@ class random_actions:
             11: [('controller', 20), ('striker', 8), ('tank', 2)]  # 100
         }
 
+    def get_action_choices(self, shape):
+        action_choices = np.zeros(shape)
+        group_id = 0
+        node_id = 1
+        for i in range(0, action_choices.shape[0]):
+            if i > 0 and i % 11 == 0:
+                group_id += 1
+                node_id = 1
+            action_choices[i] = [group_id, node_id]
+            node_id += 1
+        return action_choices
+
     def get_action(self, obs):
-        # print('!!!!!!! Observation !!!!!!!!')
-        # print(obs)
-        # print(obs[0])
-        # for i in range(45,101,5):
-        #    print(obs[i:i+5])
-        # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         action = np.zeros(self.shape)
-        action[:, 0] = np.random.choice(
-            self.num_groups, self.num_actions, replace=False)
-        action[:, 1] = np.random.choice(
-            self.nodes_array, self.num_actions, replace=False)
-        # print('!!!actions!!!')
-        # print(action)
-        return action
+        action_idx = random.sample(
+            range(0, len(self.action_choices)), self.num_actions)
+        for i in range(0, self.num_actions):
+            action[i] = self.action_choices[action_idx[i]]
+        return (action_idx, action)
